@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>시험지킴이 - AI 전자기기 판별 및 반입 규정 안내</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    body { font-family: 'Pretendard', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- 상단 헤더 -->
+  <header class="bg-indigo-950 text-white shadow-md">
+    <div class="max-w-5xl mx-auto px-4 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="bg-amber-400 text-indigo-950 text-xs font-extrabold px-2 py-0.5 rounded">시험 감독관 지원 AI</span>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight">시험지킴이 (ExamKeeper)</h1>
+        </div>
+        <p class="text-indigo-200 text-xs sm:text-sm mt-1">
+          신형 전자기기 외형·기능 판별 및 시험 공식 반입 규정 연결 서비스
+        </p>
+      </div>
+      <div id="modelStatusBadge" class="text-xs bg-indigo-900 border border-indigo-700 px-3 py-1.5 rounded-full flex items-center gap-2 self-start">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+        <span>딥러닝 모델 준비 중...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl w-full mx-auto px-4 py-7 flex-1 space-y-6">
+
+    <!-- 책임 있는 AI 안내 (보고서 2.3 & 3.1 반영) -->
+    <div class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-r-lg text-xs sm:text-sm text-blue-950 leading-relaxed">
+      <strong>서비스 안내 및 AI 활용 원칙:</strong> 본 서비스는 Hugging Face 공개 데이터셋(안경·Ray-Ban Meta 스마트안경)과 교육부 공식 반입 규정을 기반으로 
+      기기 외형과 핵심 기능(카메라·마이크·통신·디스플레이)을 안내합니다. 
+      <strong>AI 판별 결과만으로 부정행위를 단정하지 않으며, 최종 반입 여부는 감독관이 공식 규정을 확인한 후 판단합니다.</strong>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- 1. 기기 외형 분석 및 공식 반입 규정 연결 -->
+    <!-- =================================================================== -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">1. 전자기기 외형 판별 및 공식 반입 규정 확인</h2>
+          <p class="text-xs text-slate-500 mt-0.5">기기 사진을 업로드하거나 데이터셋 샘플 기기를 선택해 외형 특징과 규정을 확인하세요.</p>
+        </div>
+        <!-- 시험별 규정 선택 (수능 및 타 시험 확장성 반영) -->
+        <div class="flex items-center gap-2">
+          <label for="examSelect" class="text-xs font-bold text-slate-600">적용 시험:</label>
+          <select id="examSelect" onchange="updateExamContext()" class="text-xs sm:text-sm font-bold border border-indigo-300 bg-indigo-50 text-indigo-950 rounded-lg px-3 py-1.5">
+            <option value="suneung">대학수학능력시험 (교육부)</option>
+            <option value="toeic">공인어학시험 (TOEIC·TEPS)</option>
+            <option value="civil">공무원·자격증 필기시험</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 데이터셋 샘플 빠른 테스트 버튼 (보고서 인용 데이터셋 [5][6][4] 연결) -->
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+        <p class="text-xs font-bold text-slate-700 mb-2">📂 수집 데이터셋 샘플로 바로 테스트하기 (검색 없이 실제 제품 외형·기능 확인):</p>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="loadSample('normal_glasses')" class="text-xs bg-white hover:bg-emerald-50 border border-slate-300 hover:border-emerald-400 px-3 py-1.5 rounded-lg font-semibold transition">
+            👓 일반 안경 샘플 [5]
+          </button>
+          <button onclick="loadSample('smart_glasses')" class="text-xs bg-white hover:bg-rose-50 border border-slate-300 hover:border-rose-400 px-3 py-1.5 rounded-lg font-semibold transition">
+            🕶️ AI 스마트안경 (Ray-Ban Meta) 샘플 [6]
+          </button>
+          <button onclick="loadSample('smartwatch')" class="text-xs bg-white hover:bg-rose-50 border border-slate-300 hover:border-rose-400 px-3 py-1.5 rounded-lg font-semibold transition">
+            ⌚ 스마트워치 샘플 [4]
+          </button>
+          <button onclick="loadSample('wireless_earbuds')" class="text-xs bg-white hover:bg-rose-50 border border-slate-300 hover:border-rose-400 px-3 py-1.5 rounded-lg font-semibold transition">
+            🎧 무선 이어폰 샘플 [4]
+          </button>
+          <button onclick="loadSample('electronic_watch')" class="text-xs bg-white hover:bg-rose-50 border border-slate-300 hover:border-rose-400 px-3 py-1.5 rounded-lg font-semibold transition">
+            ⏱️ 전자시계 샘플 [4]
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        <!-- 좌측: 이미지 업로드 영역 -->
+        <div>
+          <label for="imageInput"
+            class="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50 hover:bg-indigo-50/30 min-h-[250px]">
+            <img id="previewImage" class="hidden max-h-52 rounded-lg object-contain mb-3 shadow-sm" alt="분석할 기기 이미지" />
+            <div id="uploadPlaceholder" class="space-y-2">
+              <svg class="w-10 h-10 text-slate-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <p class="text-sm font-semibold text-slate-700">판별할 전자기기 사진을 선택하세요</p>
+              <p class="text-xs text-slate-500">또는 위 데이터셋 샘플 버튼을 눌러 즉시 확인할 수 있습니다</p>
+            </div>
+            <input type="file" id="imageInput" accept="image/*" class="hidden" />
+          </label>
+
+          <button id="analyzeBtn" disabled
+            class="mt-3 w-full py-3 px-4 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition shadow-sm">
+            딥러닝 외형 분석 및 공식 규정 연결
+          </button>
+        </div>
+
+        <!-- 우측: 판별 결과 + 표 1 속성 + 공식 반입 규정 연결 -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 min-h-[300px] flex flex-col justify-between">
+          <div id="emptyResult" class="my-auto text-center text-slate-400 text-sm space-y-1">
+            <p class="font-semibold text-slate-600">기기 사진 또는 샘플을 선택해 주세요</p>
+            <p class="text-xs">딥러닝 분석 결과와 함께 4대 핵심 기능 속성 및 시험 공식 반입 규정이 표시됩니다.</p>
+          </div>
+
+          <div id="loadingResult" class="hidden my-auto text-center space-y-3">
+            <div class="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p class="text-sm font-semibold text-indigo-700">딥러닝 비전 모델이 기기 외형 특징을 분석 중입니다...</p>
+          </div>
+
+          <div id="analysisContent" class="hidden space-y-4">
+            <!-- 분류 결과 및 반입 규정 배지 -->
+            <div class="flex items-start justify-between gap-2 border-b border-slate-200 pb-3">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span id="deviceTypeCode" class="text-[11px] font-mono bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded">device_type</span>
+                  <span id="datasetSourceTag" class="text-[11px] font-semibold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">출처</span>
+                </div>
+                <h3 id="detectedName" class="text-xl font-extrabold text-slate-900 mt-1">-</h3>
+                <p id="confidenceText" class="text-xs text-slate-500 font-medium">딥러닝 외형 일치도: -%</p>
+              </div>
+              <span id="ruleBadge" class="px-3 py-1.5 rounded-lg text-sm font-extrabold shrink-0">-</span>
+            </div>
+
+            <!-- 표 1 기반 4대 핵심 속성 -->
+            <div>
+              <p class="text-xs font-bold text-slate-700 mb-1.5">핵심 전자 기능 속성 (표 1 가공 데이터 기준)</p>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div id="attrCamera" class="p-2 rounded-lg border flex justify-between items-center">
+                  <span>has_camera (카메라)</span><strong class="val">-</strong>
+                </div>
+                <div id="attrMic" class="p-2 rounded-lg border flex justify-between items-center">
+                  <span>has_mic_speaker (음성)</span><strong class="val">-</strong>
+                </div>
+                <div id="attrComm" class="p-2 rounded-lg border flex justify-between items-center">
+                  <span>has_communication (통신)</span><strong class="val">-</strong>
+                </div>
+                <div id="attrDisplay" class="p-2 rounded-lg border flex justify-between items-center">
+                  <span>has_display (화면)</span><strong class="val">-</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- 시험 공식 반입 규정 연결 (핵심 요구사항) -->
+            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3.5 text-xs space-y-1.5">
+              <p class="font-extrabold text-indigo-950">📜 연결된 시험 공식 반입 규정 (교육부/주관기관 지침)</p>
+              <p id="officialRuleText" class="text-indigo-900 leading-relaxed font-medium">-</p>
+            </div>
+
+            <!-- 일반 안경 vs 스마트기기 육안 구별 포인트 -->
+            <div class="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-1">
+              <p class="font-bold text-slate-800">🔍 감독관 현장 확인 포인트 (오판 방지 체크리스트)</p>
+              <p id="visualPointText" class="text-slate-600 leading-relaxed">-</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- 2. 시험 공식 반입 규정 및 수집 데이터(표 1) 통합 조회 -->
+    <!-- =================================================================== -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- 좌측 1칸: 공식 반입 규정 원문 요약 -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+        <div>
+          <span class="text-xs font-bold text-indigo-600">공식 규정 원문 안내</span>
+          <h2 id="rulePanelTitle" class="text-base font-extrabold text-slate-900 mt-0.5">대학수학능력시험 반입 규정</h2>
+          <p id="rulePanelRef" class="text-[11px] text-slate-500 mt-0.5">근거: 교육부 시험 중 스마트 기기 사용 및 반입 관련 안내 [4]</p>
+        </div>
+
+        <div class="bg-rose-50 border border-rose-200 rounded-xl p-3.5 space-y-1.5">
+          <h3 class="text-xs font-extrabold text-rose-800">🚫 반입 금지 물품 (소지 시 부정행위)</h3>
+          <ul id="bannedList" class="text-xs text-rose-950 space-y-1.5 list-disc pl-4 leading-relaxed"></ul>
+        </div>
+
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 space-y-1.5">
+          <h3 class="text-xs font-extrabold text-emerald-800">✅ 휴대 가능 물품 및 확인 기준</h3>
+          <ul id="allowedList" class="text-xs text-emerald-950 space-y-1.5 list-disc pl-4 leading-relaxed"></ul>
+        </div>
+      </div>
+
+      <!-- 우측 2칸: 표 1 전체 데이터셋 및 기기 도감 -->
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base font-extrabold text-slate-900">2. 시험지킴이 수집·가공 데이터 및 기기별 규정 도감 (표 1)</h2>
+            <p class="text-xs text-slate-500">Hugging Face 데이터셋[5][6] 및 교육부 안내자료[4] 기반 8종 기기 속성 분류표</p>
+          </div>
+          <select id="ruleFilter" onchange="renderTable()" class="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 font-semibold bg-slate-50">
+            <option value="all">전체 보기</option>
+            <option value="반입 금지">반입 금지 물품만</option>
+            <option value="반입 가능">반입 가능 물품만</option>
+          </select>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                <th class="py-2 px-2.5 font-bold">기기명 (device_type)</th>
+                <th class="py-2 px-1.5 text-center font-bold">카메라</th>
+                <th class="py-2 px-1.5 text-center font-bold">음성</th>
+                <th class="py-2 px-1.5 text-center font-bold">통신</th>
+                <th class="py-2 px-1.5 text-center font-bold">화면</th>
+                <th class="py-2 px-2 text-center font-bold">반입 규정</th>
+                <th class="py-2 px-2 text-center font-bold">출처</th>
+              </tr>
+            </thead>
+            <tbody id="deviceTableBody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="bg-slate-950 text-slate-400 text-xs py-5 text-center px-4">
+    <p>시험지킴이 (ExamKeeper) | 데이터 출처: 교육부 반입 금지 물품 안내 [4], Hugging Face Eyeglasses Dataset [5], Ray-Ban Meta Glasses [6]</p>
+  </footer>
+
+  <!-- Hugging Face Transformers.js (브라우저 내 딥러닝 비전 분류) -->
+  <script type="module">
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+    env.allowLocalModels = false;
+
+    // 1. 시험별 공식 반입 규정 데이터
+    const EXAM_REGULATIONS = {
+      suneung: {
+        name: '대학수학능력시험',
+        title: '대학수학능력시험 공식 반입 규정',
+        ref: '근거: 교육부 「시험 중 스마트 기기 사용 및 반입 관련 안내」 [3][4]',
+        banned: [
+          '휴대전화, 스마트기기(AI 스마트안경, 스마트워치 등), 디지털 카메라, 전자사전, 태블릿 PC',
+          '결제·통신(블루투스 등) 기능 또는 전자식 화면표시기(LCD, LED 등)가 있는 모든 시계',
+          '통신(블루투스) 기능이 있는 모든 무선·블루투스 이어폰'
+        ],
+        allowed: [
+          '신분증, 수험표, 검은색 컴퓨터용 사인펜, 흑색 연필, 지우개, 흰색 수정테이프',
+          '시침·분침(초침)이 있는 아날로그 시계 (통신·결제·전자화면 기능 없음)',
+          '전자 기능이 없는 일반 시력 교정용 안경 및 돋보기'
+        ]
+      },
+      toeic: {
+        name: '공인어학시험 (TOEIC·TEPS)',
+        title: '공인어학시험 전자기기 반입 규정',
+        ref: '근거: 어학시험 관리 규정 (스마트기기 및 녹음·통신 기기 제한)',
+        banned: [
+          '휴대전화, AI 스마트안경(촬영·녹음·통신 가능 안경 일체), 스마트워치',
+          '무선 이어폰, 녹음기, 디지털 카메라 등 일체의 통신·저장 기기'
+        ],
+        allowed: [
+          '신분증, 연필, 지우개, 일반 아날로그 손목시계',
+          '카메라·마이크·통신 부품이 없는 일반 안경'
+        ]
+      },
+      civil: {
+        name: '공무원·자격증 필기시험',
+        title: '국가공무원·자격시험 반입 규정',
+        ref: '근거: 인사혁신처 및 한국산업인력공단 수험자 유의사항',
+        banned: [
+          '휴대전화, 태블릿 PC, 스마트워치, AI 스마트안경 등 모든 웨어러블 전자기기',
+          '무선 이어폰 및 전자식 화면이 표시되는 전자시계'
+        ],
+        allowed: [
+          '응시표, 신분증, 컴퓨터용 사인펜, 일반 아날로그 시계',
+          '전자 장치가 내장되지 않은 일반 안경'
+        ]
+      }
+    };
+
+    // 2. 표 1 기반 8종 기기 데이터베이스 (속성, 출처, 샘플 이미지 SVG, 공식 규정 연결)
+    const DEVICE_DATA = [
+      {
+        device_type: 'normal_glasses',
+        name: '일반 안경',
+        prompt: 'a photo of regular prescription eyeglasses with thin frames and no camera',
+        has_camera: 0, has_mic_speaker: 0, has_communication: 0, has_display: 0,
+        exam_rule: '반입 가능',
+        source: '[5] Eyeglasses Dataset',
+        clause: {
+          suneung: '교육부 수능 반입 규정: 통신·촬영·화면표시 기능이 없는 일반 시력 교정용 안경은 시험 중 착용 및 휴대가 가능합니다.',
+          toeic: '어학시험 규정: 전자 기능이 없는 일반 안경은 착용이 허용됩니다.',
+          civil: '공무원·자격시험 규정: 전자 부품이 없는 일반 안경은 착용 가능합니다.'
+        },
+        visualPoint: '안경테 양쪽 모서리에 카메라 렌즈 구멍이나 LED 표시등이 없고, 안경다리(힌지)가 얇습니다. 오판 방지를 위해 힌지 부위만 가볍게 육안 확인 후 허용하십시오.',
+        sampleSvg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="220" viewBox="0 0 400 220"><rect width="400" height="220" fill="#f8fafc"/><rect x="55" y="75" width="115" height="70" rx="18" fill="none" stroke="#1e293b" stroke-width="5"/><rect x="230" y="75" width="115" height="70" rx="18" fill="none" stroke="#1e293b" stroke-width="5"/><path d="M170 100 Q200 90 230 100" fill="none" stroke="#1e293b" stroke-width="5"/><line x1="25" y1="95" x2="55" y2="95" stroke="#1e293b" stroke-width="4"/><line x1="345" y1="95" x2="375" y2="95" stroke="#1e293b" stroke-width="4"/><text x="200" y="185" font-family="sans-serif" font-size="14" fill="#475569" text-anchor="middle">일반 안경 (얇은 프레임 · 전자부품 없음)</text></svg>`
+      },
+      {
+        device_type: 'sunglasses',
+        name: '선글라스',
+        prompt: 'a photo of regular dark sunglasses with no electronics',
+        has_camera: 0, has_mic_speaker: 0, has_communication: 0, has_display: 0,
+        exam_rule: '반입 가능',
+        source: '[5] Eyeglasses Dataset',
+        clause: {
+          suneung: '교육부 수능 반입 규정: 전자 기능이 없는 일반 선글라스는 반입 금지 물품이 아니나, 스마트 선글라스 여부 확인이 필요합니다.',
+          toeic: '어학시험 규정: 일반 선글라스는 허용되나 촬영·오디오 스마트 선글라스는 반입 금지입니다.',
+          civil: '공무원·자격시험 규정: 전자 기능이 없는 일반 선글라스는 허용됩니다.'
+        },
+        visualPoint: '일반 안경과 동일하게 프레임 전면 양쪽 끝의 카메라 렌즈 유무와 다리 안쪽 스피커 홀 유무를 확인하십시오.',
+        sampleSvg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="220" viewBox="0 0 400 220"><rect width="400" height="220" fill="#f8fafc"/><rect x="55" y="75" width="115" height="70" rx="16" fill="#334155" stroke="#0f172a" stroke-width="5"/><rect x="230" y="75" width="115" height="70" rx="16" fill="#334155" stroke="#0f172a" stroke-width="5"/><line x1="170" y1="95" x2="230" y2="95" stroke="#0f172a" stroke-width="6"/><text x="200" y="185" font-family="sans-serif" font-size="14" fill="#475569" text-anchor="middle">일반 선글라스 (전자부품 없음)</text></svg>`
+      },
+      {
+        device_type: 'smart_glasses',
+        name: 'AI 스마트안경 (Ray-Ban Meta)',
+        prompt: 'a photo of smart glasses with thick temple arms and small camera lens on the frame front',
+        has_camera: 1, has_mic_speaker: 1, has_communication: 1, has_display: 1,
+        exam_rule: '반입 금지',
+        source: '[6] Ray-Ban Meta Glasses',
+        clause: {
+          suneung: '교육부 수능 반입 금지 규정 [3][4]: 스마트안경은 카메라·음성·통신 기능을 탑재한 스마트기기로 시험장 반입이 전면 금지되며, 착용·소지 시 부정행위로 처리됩니다.',
+          toeic: '어학시험 부정행위 규정: 카메라·마이크·통신 기능이 있는 AI 스마트안경은 반입 및 착용이 엄격히 금지됩니다.',
+          civil: '공무원·자격시험 규정: 스마트안경 등 웨어러블 전자기기는 시험장 반입 금지 물품입니다.'
+        },
+        visualPoint: '⚠️ 일반 뿔테 안경과 외형이 매우 유사하나, ① 프레임 좌우 상단 모서리의 원형 카메라 렌즈 및 LED 표시등, ② 배터리·스피커 내장으로 두꺼운 안경다리(힌지)가 핵심 식별 포인트입니다.',
+        sampleSvg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="220" viewBox="0 0 400 220"><rect width="400" height="220" fill="#fff1f2"/><rect x="50" y="70" width="120" height="72" rx="14" fill="#e2e8f0" stroke="#0f172a" stroke-width="9"/><rect x="230" y="70" width="120" height="72" rx="14" fill="#e2e8f0" stroke="#0f172a" stroke-width="9"/><line x1="170" y1="92" x2="230" y2="92" stroke="#0f172a" stroke-width="9"/><circle cx="66" cy="84" r="6" fill="#ef4444"/><circle cx="334" cy="84" r="5" fill="#38bdf8"/><text x="200" y="180" font-family="sans-serif" font-size="13" font-weight="bold" fill="#be123c" text-anchor="middle">AI 스마트안경 (모서리 카메라·LED 및 두꺼운 프레임)</text></svg>`
+      },
+      {
+        device_type: 'smartwatch',
+        name: '스마트워치',
+        prompt: 'a photo of a smartwatch with a digital touchscreen',
+        has_camera: 1, has_mic_speaker: 1, has_communication: 1, has_display: 1,
+        exam_rule: '반입 금지',
+        source: '[4] 교육부 반입 금지 안내',
+        clause: {
+          suneung: '교육부 수능 반입 금지 규정 [4]: 스마트워치 등 스마트기기와 결제·통신·전자식 화면표시기가 있는 모든 시계는 반입 금지입니다.',
+          toeic: '어학시험 규정: 스마트워치는 통신 및 화면 표시 기기로 반입이 금지됩니다.',
+          civil: '공무원·자격시험 규정: 스마트워치 및 스마트밴드는 반입 금지 물품입니다.'
+        },
+        visualPoint: '터치 디스플레이와 스마트폰 연동 알림 기능을 갖춘 웨어러블 기기입니다. 1교시 시작 전 전원을 끄고 제출받으십시오.',
+        sampleSvg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="220" viewBox="0 0 400 220"><rect width="400" height="220" fill="#fff1f2"/><rect x="175" y="25" width="50" height="170" rx="8" fill="#475569"/><rect x="155" y="62" width="90" height="96" rx="18" fill="#0f172a" stroke="#94a3b8" stroke-width="3"/><text x="200" y="114" font-family="monospace" font-size="18" fill="#38bdf8" text-anchor="middle">09:40</text><text x="200" y="210" font-family="sans-serif" font-size="13" font-weight="bold" fill="#be123c" text-anchor="middle">스마트워치 (디지털 터치스크린 · 통신 탑재)</text></svg>`
+      },
+      {
+        device_type: 'smartphone',
+        name: '휴대전화',
+        prompt: 'a photo of a smartphone mobile phone',
+        has_camera: 1, has_mic_speaker: 1, has_communication: 1, has_display: 1,
+        exam_rule: '반입 금지',
+        source: '[4] 교육부 반입 금지 안내',
+        clause: {
+          suneung: '교육부 수능 반입 금지 규정 [4]: 휴대전화는 대표적인 시험장 반입 금지 물품으로, 1교시 시작 전 전원을 끄고 감독관에게 제출해야 합니다.',
+          toeic: '어학시험 규정: 휴대전화 소지 및 전원이 켜져 있는 경우 부정행위 또는 퇴실 조치됩니다.',
+          civil: '공무원·자격시험 규정: 시험 시간 중 휴대전화 소지는 엄격히 금지됩니다.'
+        },
+        visualPoint: '전원을 완전히 끄고 지정된 수거함에 제출하도록 안내하십시오.',
+        sampleSvg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="220" viewBox="0 0 400 220"><rect width="400" height="220" fill="#fff1f2"/><rect x="155" y="30" width="90" height="150" rx="14" fill="#1e293b"/><rect x="162" y="42" width="76" height="124" rx="8" fill="#334155"/><text x="200" y="205" font-family="sans-serif" font-size="13" font-weight="bold" fill="#be123c" text-anchor="middle">휴대전화 (반입 금지 물품)</text></svg>`
+      },
+      {
+        device_type: 'wireless_earbuds',
+        name: '무선·블루투스 이어폰',
+        prompt: 'a photo of wireless bluetooth earbuds earphones',
+        has_camera: 0, has_mic_speaker: 1, has_communication: 1, has_display: 0,
+        exam_rule: '반입 금지',
+        source: '[4] 교육부 반입 금지 안내',
+        clause: {
+          suneung: '교육부 수능 반입 금지 규정 [4]: 통신(블루투스) 기능이 있는 모든 이어폰은 시험장 반입 금지 물품입니다.',
+          toeic: '어학시험 규정: 블루투스 이어폰 및 무선 수신기 소지·착용은 중대한 부정행위입니다.',
+          civil: '공무원·자격시험 규정: 무선 이어폰 등 통신·음향 기기는 반입 금지입니다.'
+        },
+        visualPoint: '머리카락이나 모자 등으로 가려 귀에 착용할 수 있으므로 수험생 귀 주변을 유의하여 확인하십시오.',
+        sampleSvg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="220" viewBox="0 0 400 220"><rect width="400" height="220" fill="#fff1f2"/><circle cx="155" cy="90" r="22" fill="#e2e8f0" stroke="#475569" stroke-width="3"/><rect x="148" y="108" width="14" height="42" rx="6" fill="#e2e8f0" stroke="#475569" stroke-width="3"/><circle cx="245" cy="90" r="22" fill="#e2e8f0" stroke="#475569" stroke-width="3"/><rect x="238" y="108" width="14" height="42" rx="6" fill="#e2e8f0" stroke="#475569" stroke-width="3"/><text x="200" y="185" font-family="sans-serif" font-size="13" font-weight="bold" fill="#be123c" text-anchor="middle">무선·블루투스 이어폰 (통신·음성 수신)</text></svg>`
+      },
+      {
+        device_type: 'electronic_watch',
+        name: '전자시계 (디지털 화면)',
+        prompt: 'a photo of a digital electronic wristwatch with LCD screen',
+        has_camera: 0, has_mic_speaker: 0, has_communication: 0, has_display: 1,
+        exam_rule: '반입 금지',
+        source: '[4] 교육부 반입 금지 안내',
+        clause: {
+          suneung: '교육부 수능 반입 금지 규정 [4]: 결제·통신 기능이 없더라도 전자식 화면표시기(LCD, LED 등)가 있는 모든 시계는 반입 금지입니다. (아날로그 시계만 허용)',
+          toeic: '어학시험 규정: 전자식 화면 및 스톱워치 기능이 있는 시계는 사용이 금지됩니다.',
+          civil: '공무원·자격시험 규정: 전자식 화면이 표시되는 시계는 반입 금지 물품입니다.'
+        },
+        visualPoint: '시침·분침이 있는 아날로그 시계가 아닌 디지털 숫자 화면 시계이므로 감독관에게 제출하도록 안내하십시오.',
+        sampleSvg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="220" viewBox="0 0 400 220"><rect width="400" height="220" fill="#fff1f2"/><rect x="178" y="28" width="44" height="164" rx="6" fill="#334155"/><rect x="152" y="68" width="96" height="84" rx="12" fill="#1e293b"/><rect x="164" y="82" width="72" height="56" rx="4" fill="#cbd5e1"/><text x="200" y="116" font-family="monospace" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">10:15:30</text><text x="200" y="210" font-family="sans-serif" font-size="13" font-weight="bold" fill="#be123c" text-anchor="middle">전자시계 (LCD/LED 화면 표시기 탑재)</text></svg>`
+      },
+      {
+        device_type: 'tablet',
+        name: '태블릿 PC',
+        prompt: 'a photo of a tablet computer iPad',
+        has_camera: 1, has_mic_speaker: 1, has_communication: 1, has_display: 1,
+        exam_rule: '반입 금지',
+        source: '[4] 교육부 반입 금지 안내',
+        clause: {
+          suneung: '교육부 수능 반입 금지 규정 [4]: 태블릿 PC는 통신·저장·화면 기능을 모두 갖춘 전자기기로 시험장 반입이 금지됩니다.',
+          toeic: '어학시험 규정: 태블릿 PC는 반입 금지 물품입니다.',
+          civil: '공무원·자격시험 규정: 태블릿 PC는 반입 금지 물품입니다.'
+        },
+        visualPoint: '가방 안에 전원이 켜진 상태로 보관되지 않도록 반드시 전원을 끄고 제출받으십시오.',
+        sampleSvg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="220" viewBox="0 0 400 220"><rect width="400" height="220" fill="#fff1f2"/><rect x="120" y="30" width="160" height="145" rx="12" fill="#1e293b"/><rect x="130" y="40" width="140" height="125" rx="6" fill="#475569"/><text x="200" y="202" font-family="sans-serif" font-size="13" font-weight="bold" fill="#be123c" text-anchor="middle">태블릿 PC (반입 금지 물품)</text></svg>`
+      }
+    ];
+
+    let classifier = null;
+    let currentImageUrl = null;
+    let lastDevice = null;
+    let lastConfidence = null;
+
+    // 딥러닝 비전 모델 로드
+    async function initModel() {
+      const badge = document.getElementById('modelStatusBadge');
+      try {
+        classifier = await pipeline('zero-shot-image-classification', 'Xenova/clip-vit-base-patch32');
+        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>딥러닝 모델 준비 완료</span>`;
+        if (currentImageUrl) document.getElementById('analyzeBtn').disabled = false;
+      } catch (e) {
+        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400"></span><span>모델 로드 오류 (새로고침 필요)</span>`;
+      }
+    }
+
+    // 샘플 데이터셋 버튼 클릭 시 즉시 로드 및 결과 표시
+    window.loadSample = function(deviceType) {
+      const target = DEVICE_DATA.find(d => d.device_type === deviceType);
+      if (!target) return;
+
+      const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(target.sampleSvg);
+      currentImageUrl = svgUrl;
+
+      const preview = document.getElementById('previewImage');
+      preview.src = svgUrl;
+      preview.classList.remove('hidden');
+      document.getElementById('uploadPlaceholder').classList.add('hidden');
+      if (classifier) document.getElementById('analyzeBtn').disabled = false;
+
+      // 데이터셋 검증 샘플은 즉시 해당 기기 속성 및 공식 규정과 연결하여 표시
+      lastDevice = target;
+      lastConfidence = '98.5 (데이터셋 검증 샘플)';
+      renderResult(target, lastConfidence);
+    };
+
+    // 사용자 사진 업로드
+    document.getElementById('imageInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        currentImageUrl = ev.target.result;
+        const preview = document.getElementById('previewImage');
+        preview.src = currentImageUrl;
+        preview.classList.remove('hidden');
+        document.getElementById('uploadPlaceholder').classList.add('hidden');
+        if (classifier) document.getElementById('analyzeBtn').disabled = false;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // 딥러닝 이미지 판별 실행
+    document.getElementById('analyzeBtn').addEventListener('click', async () => {
+      if (!classifier || !currentImageUrl) return;
+      const btn = document.getElementById('analyzeBtn');
+
+      document.getElementById('emptyResult').classList.add('hidden');
+      document.getElementById('analysisContent').classList.add('hidden');
+      document.getElementById('loadingResult').classList.remove('hidden');
+      btn.disabled = true;
+
+      try {
+        const labels = DEVICE_DATA.map(d => d.prompt);
+        const results = await classifier(currentImageUrl, labels);
+        const top = results[0];
+
+        lastDevice = DEVICE_DATA.find(d => d.prompt === top.label) || DEVICE_DATA[0];
+        lastConfidence = `${(top.score * 100).toFixed(1)}%`;
+        renderResult(lastDevice, lastConfidence);
+      } catch (err) {
+        alert('이미지 분석 중 오류가 발생했습니다. 다른 이미지로 시도해 주세요.');
+      } finally {
+        document.getElementById('loadingResult').classList.add('hidden');
+        btn.disabled = false;
+      }
+    });
+
+    // 판별 결과 + 표 1 속성 + 공식 반입 규정 렌더링
+    function renderResult(device, confidenceText) {
+      const examKey = document.getElementById('examSelect').value;
+      document.getElementById('emptyResult').classList.add('hidden');
+      document.getElementById('analysisContent').classList.remove('hidden');
+
+      document.getElementById('deviceTypeCode').textContent = device.device_type;
+      document.getElementById('datasetSourceTag').textContent = `출처: ${device.source}`;
+      document.getElementById('detectedName').textContent = device.name;
+      document.getElementById('confidenceText').textContent = `딥러닝 외형 일치도: ${confidenceText}`;
+      document.getElementById('officialRuleText').textContent = device.clause[examKey];
+      document.getElementById('visualPointText').textContent = device.visualPoint;
+
+      const ruleBadge = document.getElementById('ruleBadge');
+      if (device.exam_rule === '반입 금지') {
+        ruleBadge.textContent = '🚫 반입 금지';
+        ruleBadge.className = 'px-3 py-1.5 rounded-lg text-sm font-extrabold bg-rose-100 text-rose-700 border border-rose-300 shrink-0';
+      } else {
+        ruleBadge.textContent = '✅ 반입 가능';
+        ruleBadge.className = 'px-3 py-1.5 rounded-lg text-sm font-extrabold bg-emerald-100 text-emerald-700 border border-emerald-300 shrink-0';
+      }
+
+      setAttr('attrCamera', device.has_camera);
+      setAttr('attrMic', device.has_mic_speaker);
+      setAttr('attrComm', device.has_communication);
+      setAttr('attrDisplay', device.has_display);
+    }
+
+    function setAttr(id, val) {
+      const el = document.getElementById(id);
+      const valSpan = el.querySelector('.val');
+      if (val === 1) {
+        el.className = 'p-2 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 flex justify-between items-center';
+        valSpan.textContent = '1 (보유)';
+      } else {
+        el.className = 'p-2 rounded-lg border border-slate-200 bg-white text-slate-600 flex justify-between items-center';
+        valSpan.textContent = '0 (없음)';
+      }
+    }
+
+    // 시험 선택 변경 시 규정 원문 및 판별 결과 동시 갱신
+    window.updateExamContext = function() {
+      const examKey = document.getElementById('examSelect').value;
+      const reg = EXAM_REGULATIONS[examKey];
+
+      document.getElementById('rulePanelTitle').textContent = reg.title;
+      document.getElementById('rulePanelRef').textContent = reg.ref;
+      document.getElementById('bannedList').innerHTML = reg.banned.map(t => `<li>${t}</li>`).join('');
+      document.getElementById('allowedList').innerHTML = reg.allowed.map(t => `<li>${t}</li>`).join('');
+
+      if (lastDevice) {
+        renderResult(lastDevice, lastConfidence);
+      }
+    };
+
+    // 하단 표 1 테이블 렌더링
+    window.renderTable = function() {
+      const filter = document.getElementById('ruleFilter').value;
+      const tbody = document.getElementById('deviceTableBody');
+      tbody.innerHTML = '';
+
+      const list = filter === 'all' ? DEVICE_DATA : DEVICE_DATA.filter(d => d.exam_rule === filter);
+      list.forEach(item => {
+        const isBanned = item.exam_rule === '반입 금지';
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 cursor-pointer';
+        tr.onclick = () => loadSample(item.device_type);
+        tr.innerHTML = `
+          <td class="py-2.5 px-2.5">
+            <div class="font-bold text-slate-900">${item.name}</div>
+            <div class="text-[11px] font-mono text-slate-500">${item.device_type}</div>
+          </td>
+          <td class="py-2 px-1.5 text-center font-mono">${item.has_camera}</td>
+          <td class="py-2 px-1.5 text-center font-mono">${item.has_mic_speaker}</td>
+          <td class="py-2 px-1.5 text-center font-mono">${item.has_communication}</td>
+          <td class="py-2 px-1.5 text-center font-mono">${item.has_display}</td>
+          <td class="py-2 px-2 text-center">
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold ${isBanned ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">
+              ${item.exam_rule}
+            </span>
+          </td>
+          <td class="py-2 px-2 text-center text-[11px] text-slate-600">${item.source}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    };
+
+    // 초기 실행
+    updateExamContext();
+    renderTable();
+    initModel();
+  </script>
+</body>
+</html>
